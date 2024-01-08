@@ -10,12 +10,12 @@ library(bslib)
 # library(waiter)
 # library(shinyjs)
 
-library(tidyverse)
+library(dplyr)
+library(stringr)
 
 # tell shiny to log all reactivity
 # reactlog_enable()
 # options(shiny.reactlog = TRUE)
-
 
 
 # Data --------------------------------------------------------------------
@@ -33,11 +33,16 @@ ui <- bslib::page_sidebar(
   ### Sidebar -----------------------------------------------------------------
   sidebar = bslib::sidebar(
     width = 300,
-    selectizeInput(
+    # selectizeInput(
+    #   inputId = "data",
+    #   label = "Select Your Dataset",
+    #   choices = c("", keep(ls(), ~ is.data.frame(get(.x)))),
+    #   selected = ""
+    # ),
+    fileInput(
       inputId = "data",
       label = "Select Your Dataset",
-      choices = c("", keep(ls(), ~ is.data.frame(get(.x)))),
-      selected = ""
+      accept = c(".rds")
     ),
     conditionalPanel(
       condition = "input.data != ''",
@@ -148,10 +153,15 @@ server <- function(input, output) {
 
   data <- reactive({
     req(input$data)
-    get(input$data)
+    readRDS(input$data$datapath)
+
+    # get(input$data)
   })
 
   data_col <- reactive({
+    req(data())
+    req(input$selected_var)
+
     data()[[input$selected_var]]
   })
 
@@ -199,13 +209,6 @@ server <- function(input, output) {
       choices = var_labels()
     )
   })
-
-
-
-
-
-
-
 
 
 

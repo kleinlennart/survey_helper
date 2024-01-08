@@ -12,6 +12,8 @@ test <- shiny::runApp(
   display.mode = "normal"
 )
 
+# shiny::runGist("35a333d23c88650d05d3f5e89eeb1239")
+
 # rstudioapi::viewer("http://127.0.0.1:4700")
 
 
