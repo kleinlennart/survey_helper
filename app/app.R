@@ -1,14 +1,13 @@
 ### Shiny App to Assist Survey Cleaning
 
 library(shiny)
-
 library(reactlog)
 # While Shiny app is running, press Cmd+F3 to launch the reactlog application.
 # https://rstudio.github.io/reactlog/articles/reactlog.html
 
-# library(plotly)
-library(gridlayout)
+# library(gridlayout)
 library(bslib)
+# library(plotly)
 # library(DT)
 
 library(tidyverse)
@@ -25,66 +24,87 @@ raw <- readRDS("/Users/lennart/Library/CloudStorage/OneDrive-UTCloud/BA_Klein/ge
 
 # UI ----------------------------------------------------------------------
 
-ui <- fluidPage(
-  titlePanel("Survey Analysis Helper"),
+ui <- bslib::page_sidebar(
+  title = "Survey Analysis Helper",
   ### Sidebar -----------------------------------------------------------------
-  sidebarLayout(
-    sidebarPanel(
-      selectInput(
-        # selected = " ",
-        selected = "Vote", # DEBUG
-        inputId = "selected_variable",
-        label = "Select Variable",
-        choices = c(" ", names(raw))
-      ),
-      uiOutput("varNameInput"),
-      checkboxInput(
-        inputId = "show_data",
-        value = TRUE,
-        label = "Show Data Outcomes"
-      ),
-      checkboxInput(
-        inputId = "rev",
-        value = FALSE,
-        label = "Reverse Match Values"
-      ),
-      checkboxInput(
-        inputId = "translate",
-        value = FALSE,
-        label = "Translate Factor Levels"
-      ),
-      textAreaInput(inputId = "var_label", label = "Variable Label", value = "")
+  sidebar = bslib::sidebar(
+    width = 300,
+    selectizeInput(
+      selected = "",
+      # selected = "Vote", # DEBUG
+      inputId = "selected_variable",
+      label = "Select Variable",
+      choices = c("", names(raw))
     ),
-    ### Main Panel ------------------------------------------------------------
-    mainPanel(
-      tags$h3("Dataset"),
-      # tags$h4("Class"),
-      verbatimTextOutput(outputId = "datasetClass"),
-      tags$hr(),
-      tags$h3("Variable"),
-      # htmlOutput(outputId = "variableName"),
-      tableOutput(outputId = "countTable"),
+    uiOutput("varNameInput"),
+    checkboxInput(
+      inputId = "show_data",
+      value = FALSE,
+      label = "Show Data Outcomes"
+    ),
+    checkboxInput(
+      inputId = "rev",
+      value = FALSE,
+      label = "Reverse Match Values"
+    ),
+    checkboxInput(
+      inputId = "translate",
+      value = FALSE,
+      label = "Translate Factor Levels"
+    ),
+    textAreaInput(inputId = "var_label", label = "Variable Label", value = ""),
+    uiOutput("selectNA"),
+    tags$hr(),
+    # textOutput(outputId = "deepl_quota")
+  ),
+  ### Main Panel ------------------------------------------------------------
+  # tags$h3("Dataset"),
+  # # tags$h4("Class"),
+  # verbatimTextOutput(outputId = "datasetClass"),
+  # tags$hr(),
+  tags$h2("Variable Overview"),
+  bslib::layout_columns(
+    col_widths = c(6, 6, 6, 6), # 12 max
+    fill = FALSE,
+    card(
+      fill = FALSE,
+      tags$h4("Count"),
+      tableOutput(outputId = "countTable")
+    ),
+    card(
+      fill = FALSE,
       tags$h4("Structure"),
       verbatimTextOutput(outputId = "variable_structure"),
       verbatimTextOutput(outputId = "variable_class"),
+    ),
+    card(
+      fill = FALSE,
       tags$h4("Levels"),
       verbatimTextOutput(outputId = "variable_levels"),
-      verbatimTextOutput(outputId = "variable_levels_no"),
+      verbatimTextOutput(outputId = "variable_levels_no")
+    ),
+    card(
+      fill = FALSE,
       tags$h4("Missingness"),
-      verbatimTextOutput(outputId = "variable_missing"),
-      # tags$h4("Var Label"),
-      # verbatimTextOutput(outputId = "variable_label")
-
-
-
-      tags$h3("Helpers"),
-      tags$h5("Recoder"),
-      codeModules::codeOutput(outputId = "helper_recoder"),
-      tags$h5("Rematcher"),
-      codeModules::codeOutput(outputId = "helper_rematcher"),
-      tags$h5("Relabel"),
-      codeModules::codeOutput(outputId = "helper_relabel"),
+      verbatimTextOutput(outputId = "variable_missing")
     )
+  ),
+
+  # tags$h4("Var Label"),
+  # verbatimTextOutput(outputId = "variable_label")
+
+  tags$hr(), # horizontal rule
+  tags$h3("Coding Helpers"),
+  card(
+    fill = FALSE,
+    tags$h5("Recoder"),
+    codeModules::codeOutput(outputId = "helper_recoder"),
+    tags$h5("Rematcher"),
+    codeModules::codeOutput(outputId = "helper_rematcher"),
+    tags$h5("Explicit NA"),
+    codeModules::codeOutput(outputId = "helper_NA"),
+    tags$h5("Relabel"),
+    codeModules::codeOutput(outputId = "helper_relabel")
   )
 )
 
@@ -92,6 +112,11 @@ ui <- fluidPage(
 # Server ------------------------------------------------------------------
 
 server <- function(input, output) {
+  output$deepl_quota <- renderText({
+    usage <- deeplr::usage2(auth_key = Sys.getenv("DEEPL_API_KEY"))
+    paste0("DeepL Quota:\n", usage$character_count, " / ", format(usage$character_limit, big.mark = ",", scientific = FALSE))
+  })
+
   output$variable_structure <- renderPrint({
     raw[[input$selected_variable]] |> str()
   })
@@ -131,7 +156,6 @@ server <- function(input, output) {
   ## DEBUG
   # input <- list()
   # input$selected_variable <- "Arbe_Dig"
-
 
   output$helper_recoder <- codeModules::renderCode({
     vec <- raw[[input$selected_variable]]
@@ -193,9 +217,14 @@ server <- function(input, output) {
     recoder
   })
 
+  output$helper_NA <- codeModules::renderCode({
+    str_glue("|> fct_na_level_to_value(extra_levels = {utils::capture.output(dput(input$NA_labels))})")
+  })
+
+
   output$helper_relabel <- codeModules::renderCode({
     if (input$var_label == "") {
-      "No label added"
+      "No label added."
     } else {
       # input$var_label <- "Wenn am nächsten Sonntag Bundestagswahl wäre, welche Partei würden Sie dann wählen?"
 
@@ -220,11 +249,28 @@ server <- function(input, output) {
     }
   })
 
+  var_labels <- reactive({
+    if (is.factor(raw[[input$selected_variable]])) {
+      raw[[input$selected_variable]] |> levels()
+    } else {
+      "No Labels"
+    }
+  })
+
   output$varNameInput <- renderUI({
     textInput(
       inputId = "var_name",
-      label = "New Variable Name:",
+      label = "New Variable Name",
       value = var_name()
+    )
+  })
+
+  output$selectNA <- renderUI({
+    selectizeInput(
+      inputId = "NA_labels",
+      label = "NA Labels",
+      multiple = TRUE,
+      choices = var_labels()
     )
   })
 
@@ -246,7 +292,7 @@ server <- function(input, output) {
   })
 
   tableData <- reactive({
-    if (input$selected_variable == " ") {
+    if (input$selected_variable == "") {
       # Default dataset or a placeholder
       NULL
     } else {
