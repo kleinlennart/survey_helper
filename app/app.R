@@ -18,6 +18,8 @@ library(stringr)
 # options(shiny.reactlog = TRUE)
 
 
+# dsn <- config::get("datawarehouse")
+
 # Data --------------------------------------------------------------------
 
 # raw <- readRDS("/Users/lennart/Library/CloudStorage/OneDrive-UTCloud/BA_Klein/gesis.rds")
@@ -212,10 +214,10 @@ server <- function(input, output) {
 
 
 
-  output$deepl_quota <- renderText({
-    usage <- deeplr::usage2(auth_key = Sys.getenv("DEEPL_API_KEY"))
-    paste0("DeepL Quota:\n", usage$character_count, " / ", format(usage$character_limit, big.mark = ",", scientific = FALSE))
-  })
+  # output$deepl_quota <- renderText({
+  #   usage <- deeplr::usage2(auth_key = Sys.getenv("DEEPL_API_KEY"))
+  #   paste0("DeepL Quota:\n", usage$character_count, " / ", format(usage$character_limit, big.mark = ",", scientific = FALSE))
+  # })
 
   output$variable_structure <- renderPrint({
     data_col() |> str()

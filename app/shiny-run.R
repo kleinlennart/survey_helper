@@ -16,5 +16,6 @@ test <- shiny::runApp(
 
 # rstudioapi::viewer("http://127.0.0.1:4700")
 
+# rsconnect::showLogs("app")
 
 # rstudioapi::translateLocalUrl("http://127.0.0.1:4700", absolute = TRUE)

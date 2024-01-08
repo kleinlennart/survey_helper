@@ -5,9 +5,9 @@ account: lennartklein
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 10880544
-bundleId: 8118610
+bundleId: 8119891
 url: https://lennartklein.shinyapps.io/survey_helper/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: run.sh|shiny-run.R
+ignoredFiles: config.yml|run.sh|shiny-run.R
