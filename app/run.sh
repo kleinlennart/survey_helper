@@ -18,5 +18,5 @@
 #         display.mode = 'normal'
 #       )"
 
-
+cd app
 Rscript shiny-run.R

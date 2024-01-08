@@ -1,0 +1,13 @@
+name: survey_helper
+title: survey_helper
+username: lennartklein
+account: lennartklein
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 10880544
+bundleId: 8118610
+url: https://lennartklein.shinyapps.io/survey_helper/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: run.sh|shiny-run.R
